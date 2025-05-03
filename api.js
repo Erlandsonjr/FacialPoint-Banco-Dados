@@ -1,0 +1,154 @@
+import express from "express";
+import mongoose from "mongoose";
+import Frequencia from "./Frequencia.js";
+import cors from "cors";
+import User from "./user.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
+const app = express();
+const PORT = 3000;
+
+app.use(express.json());
+app.use(cors());
+
+const SECRET = "seuSegredoSuperSeguro"; // Use variável de ambiente para segurança
+
+// Conectar ao banco de dados
+const connectDB = async () => {
+    try {
+        await mongoose.connect('');
+        console.log("Conectado ao MongoDB");
+    } catch (error) {
+        console.log("Erro ao conectar ao MongoDB", error);
+    }
+};
+
+connectDB();
+
+// Middleware para autenticação JWT
+const autenticarToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ erro: "Acesso negado! Token não fornecido." });
+    }
+
+    try {
+        const usuarioVerificado = jwt.verify(token, SECRET);
+        req.usuario = usuarioVerificado; // Adiciona os dados do usuário autenticado à requisição
+        next();
+    } catch (error) {
+        res.status(403).json({ erro: "Token inválido ou expirado!" });
+    }
+};
+
+// Cadastro de usuário
+app.post("/usuarios/cadastro", async (req, res) => {
+    try {
+        const { nome, cpf, email, senha } = req.body;
+
+        // Verifica se o usuário já existe
+        const usuarioExistente = await User.findOne({ $or: [{ email }, { cpf }] });
+        if (usuarioExistente) {
+            return res.status(400).json({ erro: "Já existe uma conta com este email ou CPF!" });
+        }
+
+        // Criptografa a senha antes de armazenar
+        const senhaCriptografada = await bcrypt.hash(senha, 10);
+
+        const novoUsuario = await User.create({ nome, cpf, email, senha: senhaCriptografada });
+        res.status(201).json(novoUsuario);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao cadastrar usuário", detalhes: error });
+    }
+});
+
+// Login do usuário
+app.post("/usuarios/login", async (req, res) => {
+    try {
+        const { email, senha } = req.body;
+
+        // Verifica se o usuário existe
+        const usuario = await User.findOne({ email });
+        if (!usuario) {
+            return res.status(400).json({ erro: "Usuário não encontrado!" });
+        }
+
+        // Verifica se a senha está correta
+        const senhaValida = await bcrypt.compare(senha, usuario.senha);
+        if (!senhaValida) {
+            return res.status(401).json({ erro: "Senha incorreta!" });
+        }
+
+        // Gera token JWT
+        const token = jwt.sign({ id: usuario._id, email: usuario.email }, SECRET, { expiresIn: "1h" });
+
+        res.json({ mensagem: "Login realizado com sucesso!", token });
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao fazer login", detalhes: error });
+    }
+});
+
+// Obter dados do usuário logado
+app.get("/usuarios/me", autenticarToken, async (req, res) => {
+    try {
+        const usuario = await User.findById(req.usuario.id).populate("frequencia");
+        res.json(usuario);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao buscar usuário", detalhes: error });
+    }
+});
+
+// Registrar frequência vinculada ao usuário logado
+app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
+    try {
+        const novaFrequencia = await Frequencia.create(req.body);
+
+        // Adiciona a frequência ao usuário autenticado
+        const usuarioAtualizado = await User.findByIdAndUpdate(
+            req.usuario.id,
+            { $push: { frequencia: novaFrequencia._id } },
+            { new: true }
+        );
+
+        res.json(usuarioAtualizado);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao registrar frequência", detalhes: error });
+    }
+});
+
+// Buscar frequências do usuário logado
+app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
+    try {
+        const usuario = await User.findById(req.usuario.id).populate("frequencia");
+        res.json(usuario.frequencia);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao buscar frequências", detalhes: error });
+    }
+});
+
+// Atualizar dados do usuário logado
+app.put("/usuarios/me", autenticarToken, async (req, res) => {
+    try {
+        const usuarioAtualizado = await User.findByIdAndUpdate(req.usuario.id, req.body, { new: true });
+        res.json(usuarioAtualizado);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao atualizar usuário", detalhes: error });
+    }
+});
+
+// Excluir a própria conta
+app.delete("/usuarios/me", autenticarToken, async (req, res) => {
+    try {
+        const usuarioExcluido = await User.findByIdAndDelete(req.usuario.id);
+        res.json(usuarioExcluido);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao excluir usuário", detalhes: error });
+    }
+});
+
+app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
+
+
+
