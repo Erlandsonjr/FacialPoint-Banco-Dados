@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
     cpf: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     senha: { type: String, required: true },
-    foto: { type: String, required: true }, 
+    foto: { type: [Number], required: true }, 
 });
 
 export default mongoose.model("User", userSchema);
