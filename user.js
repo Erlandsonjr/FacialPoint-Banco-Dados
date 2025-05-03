@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema({
-    nome: String,
-    cpf: Number,
-    email: String,
-    senha: String,
-    frequencia: [{ type: mongoose.Schema.Types.ObjectId, ref: "Frequencia" }] // Relacionamento com as frequências
+const userSchema = new mongoose.Schema({
+    nome: { type: String, required: true },
+    cpf: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    senha: { type: String, required: true },
 });
 
-export default mongoose.model("User", UserSchema);
+export default mongoose.model("User", userSchema);
