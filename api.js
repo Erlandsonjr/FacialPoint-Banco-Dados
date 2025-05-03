@@ -46,7 +46,7 @@ const autenticarToken = (req, res, next) => {
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
-        const { nome, cpf, email, senha } = req.body;
+        const { nome, cpf, email, senha, foto } = req.body;
 
         // Verifica se o usuário já existe
         const usuarioExistente = await User.findOne({ $or: [{ email }, { cpf }] });
@@ -57,7 +57,7 @@ app.post("/usuarios/cadastro", async (req, res) => {
         // Criptografa a senha antes de armazenar
         const senhaCriptografada = await bcrypt.hash(senha, 10);
 
-        const novoUsuario = await User.create({ nome, cpf, email, senha: senhaCriptografada });
+        const novoUsuario = await User.create({ nome, cpf, email, senha: senhaCriptografada, foto });
         res.status(201).json(novoUsuario);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao cadastrar usuário", detalhes: error });
