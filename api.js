@@ -93,7 +93,7 @@ app.post("/usuarios/login", async (req, res) => {
 // Obter dados do usuário logado
 app.get("/usuarios/me", autenticarToken, async (req, res) => {
     try {
-        const usuario = await User.findById(req.usuario.id).populate("frequencia");
+        const usuario = await User.findById(req.usuario._id).populate("frequencia");
         res.json(usuario);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao buscar usuário", detalhes: error });
@@ -121,7 +121,7 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
 // Buscar frequências do usuário logado
 app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
     try {
-        const usuario = await User.findById(req.usuario.id).populate("frequencia");
+        const usuario = await User.findById(req.usuario._id).populate("frequencia");
         res.json(usuario.frequencia);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao buscar frequências", detalhes: error });
@@ -131,7 +131,7 @@ app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
 // Atualizar dados do usuário logado
 app.put("/usuarios/me", autenticarToken, async (req, res) => {
     try {
-        const usuarioAtualizado = await User.findByIdAndUpdate(req.usuario.id, req.body, { new: true });
+        const usuarioAtualizado = await User.findByIdAndUpdate(req.usuario._id, req.body, { new: true });
         res.json(usuarioAtualizado);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao atualizar usuário", detalhes: error });
@@ -141,7 +141,7 @@ app.put("/usuarios/me", autenticarToken, async (req, res) => {
 // Excluir a própria conta
 app.delete("/usuarios/me", autenticarToken, async (req, res) => {
     try {
-        const usuarioExcluido = await User.findByIdAndDelete(req.usuario.id);
+        const usuarioExcluido = await User.findByIdAndDelete(req.usuario._id);
         res.json(usuarioExcluido);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao excluir usuário", detalhes: error });
