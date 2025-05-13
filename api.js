@@ -195,19 +195,21 @@ app.get("/horario-brasilia", (req, res) => {
         const [month, day, year] = datePart.split('/');
         const [hour, minute, second] = timePart.split(':');
         
-        // Retornar os componentes separadamente para evitar problemas com ISO strings
+        // Criar um objeto Date ajustado para o timezone de Brasília
+        const brasiliaDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`);
+        
+        // Retornar os dados no formato ISO e componentes
         res.json({
-            formattedDate: formattedDate,
+            isoString: brasiliaDate.toISOString(),
             components: {
-                year: parseInt(year),
-                month: parseInt(month),
-                day: parseInt(day),
-                hour: parseInt(hour),
-                minute: parseInt(minute),
-                second: parseInt(second)
+                year: parseInt(year, 10),
+                month: parseInt(month, 10),
+                day: parseInt(day, 10),
+                hour: parseInt(hour, 10),
+                minute: parseInt(minute, 10),
+                second: parseInt(second, 10)
             },
-            // Incluir também timestamp em milissegundos para precisão
-            timestamp: Date.now()
+            timestamp: brasiliaDate.getTime()
         });
     } catch (error) {
         console.error("Erro ao obter o horário:", error);
