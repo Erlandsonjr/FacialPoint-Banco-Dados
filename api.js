@@ -175,26 +175,50 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 
 app.get("/horario-brasilia", (req, res) => {
     try {
-        const agora = new Date();
-
-        // Define a data no fuso horário de Brasília (apenas a data)
-        const dataBrasilia = new Date(
-            agora.getFullYear(),
-            agora.getMonth(),
-            agora.getDate()
-        );
-
-        // Retorna a data e o horário ajustados
-        res.json({
-            horario: agora,
-            data: dataBrasilia 
+        // Obter data e hora atual em Brasília usando Intl
+        const now = new Date();
+        
+        // Usar o formatador com fuso horário explícito
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/Sao_Paulo', // Fuso horário de Brasília
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
         });
+        
+        // Obter string formatada e converter para objeto Date
+        const formattedDate = formatter.format(now);
+        
+        // Resultado como: "05/13/2025, 20:30:45"
+        const [datePart, timePart] = formattedDate.split(', ');
+        const [month, day, year] = datePart.split('/');
+        const [hour, minute, second] = timePart.split(':');
+        
+        // Criar data com valores extraídos
+        const brasiliaDate = new Date(
+            parseInt(year),
+            parseInt(month) - 1, // mês é baseado em 0
+            parseInt(day),
+            parseInt(hour),
+            parseInt(minute),
+            parseInt(second)
+        );
+        
+        // Retornar o horário convertido
+        res.json({
+            horario: brasiliaDate.toISOString(),
+            data: brasiliaDate.toISOString()
+        });
+        
     } catch (error) {
         console.error("Erro ao obter o horário:", error);
         res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error.message });
     }
 });
-
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
 
 
