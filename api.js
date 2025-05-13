@@ -82,7 +82,7 @@ app.post("/usuarios/login", async (req, res) => {
         }
 
         // Gera token JWT
-        const token = jwt.sign({ id: usuario._id, email: usuario.email }, SECRET, { expiresIn: "1h" });
+        const token = jwt.sign({ _id: usuario._id, email: usuario.email }, SECRET, { expiresIn: "1h" });
 
         res.json({ mensagem: "Login realizado com sucesso!", token });
     } catch (error) {
@@ -103,11 +103,24 @@ app.get("/usuarios/me", autenticarToken, async (req, res) => {
 // Registrar frequência vinculada ao usuário logado
 app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
     try {
-        const novaFrequencia = await Frequencia.create(req.body);
+        // Obtém o horário atual no fuso horário de Brasília
+        const agora = new Date();
+        const horarioBrasilia = new Date(agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }));
 
-        // Adiciona a frequência ao usuário autenticado
+        // Define o campo `data` com base no horário ajustado (apenas a data)
+        const dataBrasilia = new Date(horarioBrasilia.getFullYear(), horarioBrasilia.getMonth(), horarioBrasilia.getDate());
+
+        // Cria uma nova frequência associada ao usuário logado
+        const novaFrequencia = await Frequencia.create({
+            nome: req.body.nome, // Nome enviado no corpo da requisição
+            horario: horarioBrasilia, // Horário atual ajustado
+            data: dataBrasilia, // Data ajustada
+            usuario: req.usuario._id // ID do usuário logado
+        });
+
+        // Adiciona a frequência ao campo `frequencia` do usuário
         const usuarioAtualizado = await User.findByIdAndUpdate(
-            req.usuario.id,
+            req.usuario._id,
             { $push: { frequencia: novaFrequencia._id } },
             { new: true }
         );
@@ -121,8 +134,9 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
 // Buscar frequências do usuário logado
 app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
     try {
+        // Busca o usuário logado e popula as frequências
         const usuario = await User.findById(req.usuario._id).populate("frequencia");
-        res.json(usuario.frequencia);
+        res.json(usuario.frequencia); // Retorna apenas as frequências
     } catch (error) {
         res.status(500).json({ erro: "Erro ao buscar frequências", detalhes: error });
     }
@@ -145,6 +159,19 @@ app.delete("/usuarios/me", autenticarToken, async (req, res) => {
         res.json(usuarioExcluido);
     } catch (error) {
         res.status(500).json({ erro: "Erro ao excluir usuário", detalhes: error });
+    }
+});
+
+// Obter dados de um usuário por ID
+app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
+    try {
+        const usuario = await User.findById(req.params._id).populate("frequencia");
+        if (!usuario) {
+            return res.status(404).json({ erro: "Usuário não encontrado!" });
+        }
+        res.json(usuario);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao buscar usuário por ID", detalhes: error });
     }
 });
 
