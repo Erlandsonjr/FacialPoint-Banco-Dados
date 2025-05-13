@@ -179,8 +179,20 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 app.get("/horario-brasilia", (req, res) => {
     try {
         // Obtém o horário atual no fuso horário de Brasília
-        const agora = new Date();
-        const horarioBrasilia = new Date(agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }));
+        const formatter = new Intl.DateTimeFormat("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+
+        const parts = formatter.formatToParts(new Date());
+        const horarioBrasilia = new Date(
+            `${parts.find(p => p.type === "year").value}-${parts.find(p => p.type === "month").value}-${parts.find(p => p.type === "day").value}T${parts.find(p => p.type === "hour").value}:${parts.find(p => p.type === "minute").value}:${parts.find(p => p.type === "second").value}`
+        );
 
         // Retorna a data e o horário ajustados
         res.json({
@@ -188,7 +200,8 @@ app.get("/horario-brasilia", (req, res) => {
             data: horarioBrasilia.toISOString().split("T")[0] // Apenas a data no formato YYYY-MM-DD
         });
     } catch (error) {
-        res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error });
+        console.error("Erro ao obter o horário:", error);
+        res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error.message });
     }
 });
 
