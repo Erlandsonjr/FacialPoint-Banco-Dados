@@ -105,16 +105,12 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
     try {
         // Obtém o horário atual no fuso horário de Brasília
         const agora = new Date();
-        const horarioBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-
-        // Define o campo `data` com base no horário ajustado (apenas a data)
-        const dataBrasilia = new Date(horarioBrasilia.getFullYear(), horarioBrasilia.getMonth(), horarioBrasilia.getDate());
 
         // Cria uma nova frequência associada ao usuário logado
         const novaFrequencia = await Frequencia.create({
             nome: req.body.nome, // Nome enviado no corpo da requisição
-            horario: horarioBrasilia, // Horário atual ajustado
-            data: dataBrasilia, // Data ajustada
+            horario: agora, // Horário atual ajustado
+            data: agora, // Data ajustada
             usuario: req.usuario._id // ID do usuário logado
         });
 
@@ -179,21 +175,19 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 
 app.get("/horario-brasilia", (req, res) => {
     try {
-        // Obtém o horário atual no fuso horário de Brasília
         const agora = new Date();
-        const horarioBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
 
         // Define a data no fuso horário de Brasília (apenas a data)
         const dataBrasilia = new Date(
-            horarioBrasilia.getFullYear(),
-            horarioBrasilia.getMonth(),
-            horarioBrasilia.getDate()
+            agora.getFullYear(),
+            agora.getMonth(),
+            agora.getDate()
         );
 
         // Retorna a data e o horário ajustados
         res.json({
-            horario: horarioBrasilia, // Retorna o horário completo ajustado
-            data: dataBrasilia // Retorna a data ajustada
+            horario: agora,
+            data: dataBrasilia /
         });
     } catch (error) {
         console.error("Erro ao obter o horário:", error);
