@@ -105,7 +105,7 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
     try {
         // Obtém o horário atual no fuso horário de Brasília
         const agora = new Date();
-        const horarioBrasilia = new Date(agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }));
+        const horarioBrasilia = new Date(agora.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
 
         // Define o campo `data` com base no horário ajustado (apenas a data)
         const dataBrasilia = new Date(horarioBrasilia.getFullYear(), horarioBrasilia.getMonth(), horarioBrasilia.getDate());
@@ -127,6 +127,7 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
 
         res.json(usuarioAtualizado);
     } catch (error) {
+        console.error("Erro ao registrar frequência:", error);
         res.status(500).json({ erro: "Erro ao registrar frequência", detalhes: error });
     }
 });
