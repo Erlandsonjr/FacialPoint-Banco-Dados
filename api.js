@@ -175,6 +175,23 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
     }
 });
 
+
+app.get("/horario-brasilia", (req, res) => {
+    try {
+        // Obtém o horário atual no fuso horário de Brasília
+        const agora = new Date();
+        const horarioBrasilia = new Date(agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }));
+
+        // Retorna a data e o horário ajustados
+        res.json({
+            horario: horarioBrasilia.toISOString(), // Horário completo em formato ISO
+            data: horarioBrasilia.toISOString().split("T")[0] // Apenas a data no formato YYYY-MM-DD
+        });
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error });
+    }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
 
 
