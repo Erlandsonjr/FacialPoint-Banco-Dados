@@ -187,7 +187,7 @@ app.get("/horario-brasilia", (req, res) => {
         // Retorna a data e o horário ajustados
         res.json({
             horario: agora,
-            data: dataBrasilia /
+            data: dataBrasilia 
         });
     } catch (error) {
         console.error("Erro ao obter o horário:", error);
