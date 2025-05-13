@@ -175,12 +175,12 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 
 app.get("/horario-brasilia", (req, res) => {
     try {
-        // Obter data e hora atual em Brasília usando Intl
+        // Obter data e horário atual
         const now = new Date();
         
-        // Usar o formatador com fuso horário explícito
+        // Formatador com timezone de Brasília
         const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/Sao_Paulo', // Fuso horário de Brasília
+            timeZone: 'America/Sao_Paulo', 
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -190,30 +190,25 @@ app.get("/horario-brasilia", (req, res) => {
             hour12: false
         });
         
-        // Obter string formatada e converter para objeto Date
         const formattedDate = formatter.format(now);
-        
-        // Resultado como: "05/13/2025, 20:30:45"
         const [datePart, timePart] = formattedDate.split(', ');
         const [month, day, year] = datePart.split('/');
         const [hour, minute, second] = timePart.split(':');
         
-        // Criar data com valores extraídos
-        const brasiliaDate = new Date(
-            parseInt(year),
-            parseInt(month) - 1, // mês é baseado em 0
-            parseInt(day),
-            parseInt(hour),
-            parseInt(minute),
-            parseInt(second)
-        );
-        
-        // Retornar o horário convertido
+        // Retornar os componentes separadamente para evitar problemas com ISO strings
         res.json({
-            horario: brasiliaDate.toISOString(),
-            data: brasiliaDate.toISOString()
+            formattedDate: formattedDate,
+            components: {
+                year: parseInt(year),
+                month: parseInt(month),
+                day: parseInt(day),
+                hour: parseInt(hour),
+                minute: parseInt(minute),
+                second: parseInt(second)
+            },
+            // Incluir também timestamp em milissegundos para precisão
+            timestamp: Date.now()
         });
-        
     } catch (error) {
         console.error("Erro ao obter o horário:", error);
         res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error.message });
