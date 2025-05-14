@@ -49,12 +49,12 @@ const autenticarToken = (req, res, next) => {
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
-        const { nome, cpf, email, senha, foto, perfil } = req.body;
+        const { nome, email, senha, foto, perfil } = req.body;
 
         // Verifica se o usuário já existe
-        const usuarioExistente = await User.findOne({ $or: [{ email }, { cpf }] });
+        const usuarioExistente = await User.findOne({ email });
         if (usuarioExistente) {
-            return res.status(400).json({ erro: "Já existe uma conta com este email ou CPF!" });
+            return res.status(400).json({ erro: "Já existe uma conta com este email!" });
         }
 
         // Criptografa a senha antes de armazenar
@@ -63,7 +63,6 @@ app.post("/usuarios/cadastro", async (req, res) => {
         // Cria o novo usuário
         const novoUsuario = await User.create({
             nome,
-            cpf,
             email,
             senha: senhaCriptografada,
             foto,
