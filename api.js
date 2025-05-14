@@ -9,7 +9,10 @@ import jwt from "jsonwebtoken";
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// Aumenta o limite de tamanho das requisições JSON e URL-encoded
+app.use(express.json({ limit: "10mb" })); // Aumenta o limite para 10MB
+app.use(express.urlencoded({ limit: "10mb", extended: true })); // Para requisições URL-encoded
+
 app.use(cors({ origin: "*" }));
 
 const SECRET = "seuSegredoSuperSeguro"; // Use variável de ambiente para segurança
