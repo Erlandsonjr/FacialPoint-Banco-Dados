@@ -16,9 +16,9 @@ const createAdmin = async () => {
         }
 
         // Dados do administrador
-        const nome = "Administrador";
-        const email = "admin@faceponto.com"; // Substitua por um e-mail válido
-        const senha = "4dminP@ssw0rd7915"; // Substitua por uma senha segura
+        const nome ="Administrador";
+        const email ="admin@faceponto.com"; // Substitua por um e-mail válido
+        const senha ="123"; // Substitua por uma senha segura
 
         // Criptografar a senha
         const senhaCriptografada = await bcrypt.hash(senha, 10);

@@ -46,7 +46,7 @@ const autenticarToken = (req, res, next) => {
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
-        const { nome, cpf, email, senha, foto } = req.body;
+        const { nome, cpf, email, senha, foto, perfil } = req.body;
 
         // Verifica se o usuário já existe
         const usuarioExistente = await User.findOne({ $or: [{ email }, { cpf }] });
@@ -57,14 +57,15 @@ app.post("/usuarios/cadastro", async (req, res) => {
         // Criptografa a senha antes de armazenar
         const senhaCriptografada = await bcrypt.hash(senha, 10);
 
-        // Cria o novo usuário com o papel fixo de "funcionario"
+        // Cria o novo usuário
         const novoUsuario = await User.create({
             nome,
             cpf,
             email,
             senha: senhaCriptografada,
             foto,
-            role: "funcionario" // Define o papel como "funcionario"
+            perfil, // Salva a imagem em Base64 no campo perfil
+            role: "funcionario"
         });
 
         res.status(201).json(novoUsuario);
