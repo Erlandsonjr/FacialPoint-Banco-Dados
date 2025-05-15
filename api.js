@@ -51,6 +51,11 @@ app.post("/usuarios/cadastro", async (req, res) => {
     try {
         const { nome, email, senha, foto, perfil } = req.body;
 
+        // Validação dos campos obrigatórios
+        if (!nome || !email || !senha || !foto || !perfil) {
+            return res.status(400).json({ erro: "Todos os campos são obrigatórios!" });
+        }
+
         // Verifica se o usuário já existe
         const usuarioExistente = await User.findOne({ email });
         if (usuarioExistente) {
@@ -66,13 +71,14 @@ app.post("/usuarios/cadastro", async (req, res) => {
             email,
             senha: senhaCriptografada,
             foto,
-            perfil, // Salva a imagem em Base64 no campo perfil
+            perfil,
             role: "funcionario"
         });
 
         res.status(201).json(novoUsuario);
     } catch (error) {
-        res.status(500).json({ erro: "Erro ao cadastrar usuário", detalhes: error });
+        console.error("Erro ao cadastrar usuário:", error);
+        res.status(500).json({ erro: "Erro ao cadastrar usuário", detalhes: error.message });
     }
 });
 
