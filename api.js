@@ -251,7 +251,81 @@ app.get("/horario-brasilia", (req, res) => {
         res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error.message });
     }
 });
+
+// Endpoint para buscar todas as codificações faciais
+app.get('/usuarios/codificacoes', async (req, res) => {
+  try {
+    // Buscar todos os usuários com suas codificações faciais
+    const usuarios = await User.find({}, { _id: 1, nome: 1, foto: 1, email: 1 });
+    
+    res.status(200).json(usuarios.map(usuario => ({
+      id: usuario._id,
+      nome: usuario.nome,
+      foto: usuario.foto,
+      email: usuario.email
+    })));
+  } catch (error) {
+    console.error('Erro ao buscar codificações faciais:', error);
+    res.status(500).json({ erro: 'Erro ao buscar codificações faciais' });
+  }
+});
+
+// Endpoint para verificar se um usuário já registrou ponto hoje
+app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const data = req.query.data; // Formato YYYY-MM-DD
+    
+    // Criar objeto Date a partir da data fornecida
+    const dataInicio = new Date(data);
+    dataInicio.setHours(0, 0, 0, 0);
+    
+    const dataFim = new Date(data);
+    dataFim.setHours(23, 59, 59, 999);
+    
+    // Buscar registros de frequência para o usuário na data especificada
+    const registros = await Frequencia.find({
+      usuario_id: usuarioId,
+      data: { $gte: dataInicio, $lte: dataFim }
+    });
+    
+    res.status(200).json({ 
+      jaRegistrou: registros.length > 0,
+      registros: registros
+    });
+  } catch (error) {
+    console.error('Erro ao verificar registro:', error);
+    res.status(500).json({ erro: 'Erro ao verificar registro' });
+  }
+});
+
+// Endpoint para registrar ponto sem autenticação
+app.post('/frequencias/registrar', async (req, res) => {
+  try {
+    const { nome, usuario_id, data, tipo_registro } = req.body;
+    
+    if (!usuario_id || !data) {
+      return res.status(400).json({ erro: 'Dados incompletos para registro' });
+    }
+    
+    // Criar novo registro de frequência
+    const novaFrequencia = new Frequencia({
+      nome,
+      usuario_id,
+      data: new Date(data),
+      tipo_registro
+    });
+    
+    await novaFrequencia.save();
+    
+    res.status(201).json({ 
+      mensagem: 'Registro de ponto realizado com sucesso',
+      frequencia: novaFrequencia
+    });
+  } catch (error) {
+    console.error('Erro ao registrar ponto:', error);
+    res.status(500).json({ erro: 'Erro ao registrar ponto' });
+  }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
-
-
-
