@@ -252,8 +252,31 @@ app.get("/horario-brasilia", (req, res) => {
     }
 });
 
-// Endpoint para buscar todas as codificações faciais
-app.get('/usuarios/codificacoes', async (req, res) => {
+// Criar rota para autenticação do quiosque
+app.post('/auth/kiosk', (req, res) => {
+  const { kioskSecret } = req.body;
+  
+  // Verifique se o segredo do quiosque é válido
+  if (kioskSecret === process.env.KIOSK_SECRET_KEY) {
+    const kioskToken = jwt.sign(
+      { type: 'kiosk', permissions: ['read_users'] },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    return res.json({ token: kioskToken });
+  }
+  
+  return res.status(401).json({ error: 'Autenticação do quiosque inválida' });
+});
+
+// Modifique a rota de codificações para aceitar token de quiosque
+app.get('/usuarios/codificacoes', verifyToken, async (req, res) => {
+  // Verificar se é um token de quiosque ou admin
+  if (req.user.type !== 'kiosk' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Acesso não autorizado' });
+  }
+  
   try {
     // Buscar todos os usuários com suas codificações faciais
     const usuarios = await User.find({}, { _id: 1, nome: 1, foto: 1, email: 1 });
@@ -329,3 +352,6 @@ app.post('/frequencias/registrar', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
+
+
+
