@@ -46,6 +46,27 @@ const autenticarToken = (req, res, next) => {
     }
 };
 
+// Middleware para verificar o token
+const verifyToken = (req, res, next) => {
+  const bearerHeader = req.headers['authorization'];
+  
+  if (!bearerHeader) {
+    return res.status(401).json({ error: 'Acesso não autorizado. Token não fornecido.' });
+  }
+  
+  try {
+    const bearer = bearerHeader.split(' ');
+    const token = bearer[1];
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('Erro ao verificar token:', error.message);
+    return res.status(401).json({ error: 'Token inválido ou expirado' });
+  }
+};
+
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
@@ -352,6 +373,3 @@ app.post('/frequencias/registrar', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
-
-
-
