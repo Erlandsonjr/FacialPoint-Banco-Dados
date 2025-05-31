@@ -273,15 +273,16 @@ app.get("/horario-brasilia", (req, res) => {
     }
 });
 
-// Criar rota para autenticação do quiosque
+// Rota de autenticação do quiosque
 app.post('/auth/kiosk', (req, res) => {
   const { kioskSecret } = req.body;
   
-  // Verifique se o segredo do quiosque é válido
-  if (kioskSecret === process.env.KIOSK_SECRET_KEY) {
+  // Verificação simples com uma senha fixa (temporário)
+  // Idealmente, você usaria uma variável de ambiente
+  if (kioskSecret === "FacePonto2025") {
     const kioskToken = jwt.sign(
       { type: 'kiosk', permissions: ['read_users'] },
-      process.env.JWT_SECRET,
+      "sua_chave_secreta_jwt_aqui", // Substitua pela sua chave JWT_SECRET 
       { expiresIn: '24h' }
     );
     
@@ -291,22 +292,16 @@ app.post('/auth/kiosk', (req, res) => {
   return res.status(401).json({ error: 'Autenticação do quiosque inválida' });
 });
 
-// Modifique a rota de codificações para aceitar token de quiosque
-app.get('/usuarios/codificacoes', verifyToken, async (req, res) => {
-  // Verificar se é um token de quiosque ou admin
-  if (req.user.type !== 'kiosk' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Acesso não autorizado' });
-  }
-  
+// Rota pública para codificações faciais (temporário)
+app.get('/public/usuarios/codificacoes', async (req, res) => {
   try {
     // Buscar todos os usuários com suas codificações faciais
-    const usuarios = await User.find({}, { _id: 1, nome: 1, foto: 1, email: 1 });
+    const usuarios = await User.find({}, { _id: 1, nome: 1, foto: 1 });
     
     res.status(200).json(usuarios.map(usuario => ({
       id: usuario._id,
       nome: usuario.nome,
-      foto: usuario.foto,
-      email: usuario.email
+      foto: usuario.foto
     })));
   } catch (error) {
     console.error('Erro ao buscar codificações faciais:', error);
