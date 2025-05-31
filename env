@@ -1,2 +1,3 @@
 MONGO_URI=mongodb+srv://aderson79:dbuser7717@ponto.dkz9wnt.mongodb.net/bancoCRUD?retryWrites=true&w=majority&appName=Ponto
 KIOSK_SECRET_KEY=seu_segredo_muito_seguro
+JWT_SECRET=sua_chave_secreta_muito_segura
