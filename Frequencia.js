@@ -1,11 +1,29 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const FrequenciaScheme = new mongoose.Schema({
-    nome: String,
-    data: Date,
-    horario: Date,
-    usuario: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true } // Referência ao usuário
+const frequenciaSchema = new mongoose.Schema({
+  nome: {
+    type: String,
+    required: true
+  },
+  usuario_id: {
+    type: String,
+    required: true
+  },
+  data: {
+    type: Date,
+    required: true
+  },
+  tipo_registro: {
+    type: String,
+    enum: ['entrada', 'saida'],
+    default: 'entrada'
+  },
+  created_at: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-const Frequencia = mongoose.model("Frequencia", FrequenciaScheme);
+const Frequencia = mongoose.model('Frequencia', frequenciaSchema);
+
 export default Frequencia;
