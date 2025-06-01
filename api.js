@@ -315,6 +315,10 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
     const { usuarioId } = req.params;
     const data = req.query.data; // Formato YYYY-MM-DD
     
+    if (!data || !usuarioId) {
+      return res.status(400).json({ erro: 'Parâmetros incompletos' });
+    }
+    
     // Criar objeto Date a partir da data fornecida
     const dataInicio = new Date(data);
     dataInicio.setHours(0, 0, 0, 0);
@@ -325,7 +329,7 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
     // Buscar registros de frequência para o usuário na data especificada
     const registros = await Frequencia.find({
       usuario_id: usuarioId,
-      data: { $gte: dataInicio, $lte: dataFim }
+      data: { $gte: dataInicio, $lt: dataFim }
     });
     
     res.status(200).json({ 
@@ -334,7 +338,7 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao verificar registro:', error);
-    res.status(500).json({ erro: 'Erro ao verificar registro' });
+    res.status(500).json({ erro: 'Erro ao verificar registro: ' + error.message });
   }
 });
 
@@ -343,18 +347,41 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
+    // Validações básicas
     if (!usuario_id || !data) {
       return res.status(400).json({ erro: 'Dados incompletos para registro' });
     }
+
+    console.log('Dados recebidos:', req.body);
     
     // Criar novo registro de frequência
     const novaFrequencia = new Frequencia({
       nome,
       usuario_id,
       data: new Date(data),
-      tipo_registro
+      tipo_registro: tipo_registro || 'entrada'
     });
     
+    // Verificar se já existe registro para hoje
+    const hoje = new Date(data);
+    hoje.setHours(0, 0, 0, 0);
+    
+    const amanha = new Date(hoje);
+    amanha.setDate(amanha.getDate() + 1);
+    
+    const registroExistente = await Frequencia.findOne({
+      usuario_id,
+      data: { $gte: hoje, $lt: amanha }
+    });
+    
+    if (registroExistente) {
+      return res.status(409).json({ 
+        erro: 'Já existe um registro de ponto para este usuário hoje',
+        frequencia: registroExistente 
+      });
+    }
+    
+    // Salvar o novo registro
     await novaFrequencia.save();
     
     res.status(201).json({ 
@@ -363,7 +390,7 @@ app.post('/frequencias/registrar', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao registrar ponto:', error);
-    res.status(500).json({ erro: 'Erro ao registrar ponto' });
+    res.status(500).json({ erro: 'Erro ao registrar ponto: ' + error.message });
   }
 });
 
