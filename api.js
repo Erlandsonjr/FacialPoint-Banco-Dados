@@ -70,11 +70,16 @@ const verifyToken = (req, res, next) => {
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
-        const { nome, email, senha, foto, perfil } = req.body;
+        const { nome, email, senha, foto, perfil, horarioTrabalho, role } = req.body;
 
         // Validação dos campos obrigatórios
         if (!nome || !email || !senha || !foto || !perfil) {
             return res.status(400).json({ erro: "Todos os campos são obrigatórios!" });
+        }
+
+        // Se não for admin, exige horarioTrabalho
+        if ((role !== "administrador") && (!horarioTrabalho || !horarioTrabalho.entrada || !horarioTrabalho.saida)) {
+            return res.status(400).json({ erro: "Horário de trabalho é obrigatório para funcionários!" });
         }
 
         // Verifica se o usuário já existe
@@ -93,7 +98,8 @@ app.post("/usuarios/cadastro", async (req, res) => {
             senha: senhaCriptografada,
             foto,
             perfil,
-            role: "funcionario"
+            role: role || "funcionario",
+            horarioTrabalho: (role !== "administrador") ? horarioTrabalho : undefined
         });
 
         res.status(201).json(novoUsuario);
@@ -198,6 +204,12 @@ app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
 // Atualizar dados do usuário logado
 app.put("/usuarios/me", autenticarToken, async (req, res) => {
     try {
+        // Se não for admin, exige horarioTrabalho ao atualizar
+        if (req.usuario.role !== "administrador") {
+            if (!req.body.horarioTrabalho || !req.body.horarioTrabalho.entrada || !req.body.horarioTrabalho.saida) {
+                return res.status(400).json({ erro: "Horário de trabalho é obrigatório para funcionários!" });
+            }
+        }
         const usuarioAtualizado = await User.findByIdAndUpdate(req.usuario._id, req.body, { new: true });
         res.json(usuarioAtualizado);
     } catch (error) {
@@ -215,7 +227,7 @@ app.delete("/usuarios/me", autenticarToken, async (req, res) => {
     }
 });
 
-// Obter dados de um usuário por ID
+// Obter dados de um usuário por ID (já retorna horarioTrabalho)
 app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
     try {
         const usuario = await User.findById(req.params._id).populate("frequencia");

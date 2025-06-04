@@ -14,7 +14,17 @@ const userSchema = new mongoose.Schema({
         ref: "Frequencia",
         required: function () { return this.role === "funcionario"; } // Apenas para funcionários
     }],
-    role: { type: String, enum: ["funcionario", "administrador"], default: "funcionario" }
+    role: { type: String, enum: ["funcionario", "administrador"], default: "funcionario" },
+    horarioTrabalho: {
+        entrada: {
+            type: String, 
+            required: function () { return this.role !== "administrador"; }
+        },
+        saida: {
+            type: String, 
+            required: function () { return this.role !== "administrador"; }
+        }
+    }
 });
 
 // Middleware para garantir que apenas um administrador exista
