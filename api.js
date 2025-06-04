@@ -394,4 +394,15 @@ app.post('/frequencias/registrar', async (req, res) => {
   }
 });
 
+// Endpoint para retornar IDs de todos os usuários, exceto administradores
+app.get("/usuarios/ids", autenticarToken, async (req, res) => {
+    try {
+        const usuarios = await User.find({ role: { $ne: "administrador" } }, { _id: 1 });
+        const ids = usuarios.map(u => u._id);
+        res.json(ids);
+    } catch (error) {
+        res.status(500).json({ erro: "Erro ao buscar IDs dos usuários", detalhes: error.message });
+    }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
