@@ -16,13 +16,33 @@ const userSchema = new mongoose.Schema({
     }],
     role: { type: String, enum: ["funcionario", "administrador"], default: "funcionario" },
     horarioTrabalho: {
-        entrada: {
-            type: String, 
-            required: function () { return this.role !== "administrador"; }
+        segunda: {
+            entrada: { type: String},
+            saida:   { type: String}
         },
-        saida: {
-            type: String, 
-            required: function () { return this.role !== "administrador"; }
+        terca: {
+            entrada: { type: String},
+            saida:   { type: String}
+        },
+        quarta: {
+            entrada: { type: String},
+            saida:   { type: String}
+        },
+        quinta: {
+            entrada: { type: String},
+            saida:   { type: String}
+        },
+        sexta: {
+            entrada: { type: String},
+            saida:   { type: String}
+        },
+        sabado: {
+            entrada: { type: String },
+            saida:   { type: String }
+        },
+        domingo: {
+            entrada: { type: String },
+            saida:   { type: String }
         }
     }
 });

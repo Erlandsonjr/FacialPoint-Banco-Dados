@@ -67,6 +67,28 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// Função auxiliar para preencher dias faltantes com null
+function preencherHorarioTrabalho(horarioTrabalho) {
+    const dias = ["segunda", "terca", "quarta", "quinta", "sexta", "sabado", "domingo"];
+    const preenchido = {};
+    for (const dia of dias) {
+        preenchido[dia] = {
+            entrada: horarioTrabalho?.[dia]?.entrada ?? null,
+            saida:   horarioTrabalho?.[dia]?.saida   ?? null
+        };
+    }
+    return preenchido;
+}
+
+// Função auxiliar para validar o horário de trabalho (agora permite dias sem horário)
+function validarHorarioTrabalho(horarioTrabalho) {
+    if (!horarioTrabalho) return false;
+    // Pelo menos um dia deve ter entrada e saída preenchidos
+    return Object.values(horarioTrabalho).some(
+        dia => dia && dia.entrada && dia.saida
+    );
+}
+
 // Cadastro de usuário
 app.post("/usuarios/cadastro", async (req, res) => {
     try {
@@ -77,10 +99,15 @@ app.post("/usuarios/cadastro", async (req, res) => {
             return res.status(400).json({ erro: "Todos os campos são obrigatórios!" });
         }
 
-        // Se não for admin, exige horarioTrabalho
-        if ((role !== "administrador") && (!horarioTrabalho || !horarioTrabalho.entrada || !horarioTrabalho.saida)) {
-            return res.status(400).json({ erro: "Horário de trabalho é obrigatório para funcionários!" });
+        // Se não for admin, exige pelo menos um dia com horário preenchido
+        if (role !== "administrador" && !validarHorarioTrabalho(horarioTrabalho)) {
+            return res.status(400).json({ erro: "Pelo menos um dia da semana deve ter horário de entrada e saída preenchido!" });
         }
+
+        // Preenche dias faltantes com null
+        const horarioTrabalhoFinal = (role !== "administrador")
+            ? preencherHorarioTrabalho(horarioTrabalho)
+            : undefined;
 
         // Verifica se o usuário já existe
         const usuarioExistente = await User.findOne({ email });
@@ -99,7 +126,7 @@ app.post("/usuarios/cadastro", async (req, res) => {
             foto,
             perfil,
             role: role || "funcionario",
-            horarioTrabalho: (role !== "administrador") ? horarioTrabalho : undefined
+            horarioTrabalho: horarioTrabalhoFinal
         });
 
         res.status(201).json(novoUsuario);
@@ -204,11 +231,13 @@ app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
 // Atualizar dados do usuário logado
 app.put("/usuarios/me", autenticarToken, async (req, res) => {
     try {
-        // Se não for admin, exige horarioTrabalho ao atualizar
+        // Se não for admin, exige pelo menos um dia com horário preenchido
+        if (req.usuario.role !== "administrador" && !validarHorarioTrabalho(req.body.horarioTrabalho)) {
+            return res.status(400).json({ erro: "Pelo menos um dia da semana deve ter horário de entrada e saída preenchido!" });
+        }
+        // Preenche dias faltantes com null
         if (req.usuario.role !== "administrador") {
-            if (!req.body.horarioTrabalho || !req.body.horarioTrabalho.entrada || !req.body.horarioTrabalho.saida) {
-                return res.status(400).json({ erro: "Horário de trabalho é obrigatório para funcionários!" });
-            }
+            req.body.horarioTrabalho = preencherHorarioTrabalho(req.body.horarioTrabalho);
         }
         const usuarioAtualizado = await User.findByIdAndUpdate(req.usuario._id, req.body, { new: true });
         res.json(usuarioAtualizado);
