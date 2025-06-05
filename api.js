@@ -355,6 +355,7 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
   try {
     const { usuarioId } = req.params;
     const data = req.query.data; // Formato YYYY-MM-DD
+    const tipo = req.query.tipo; // "entrada" ou "saida"
     
     if (!data || !usuarioId) {
       return res.status(400).json({ erro: 'Parâmetros incompletos' });
@@ -367,11 +368,19 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
     const dataFim = new Date(data);
     dataFim.setHours(23, 59, 59, 999);
     
-    // Buscar registros de frequência para o usuário na data especificada
-    const registros = await Frequencia.find({
+    // Construir filtro de busca
+    const filtro = {
       usuario_id: usuarioId,
       data: { $gte: dataInicio, $lt: dataFim }
-    });
+    };
+    
+    // Adicionar tipo de registro ao filtro, se fornecido
+    if (tipo) {
+      filtro.tipo_registro = tipo;
+    }
+    
+    // Buscar registros de frequência para o usuário na data e tipo especificados
+    const registros = await Frequencia.find(filtro);
     
     res.status(200).json({ 
       jaRegistrou: registros.length > 0,
