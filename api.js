@@ -455,4 +455,30 @@ app.get("/usuarios/ids", autenticarToken, async (req, res) => {
     }
 });
 
+// Endpoint autenticado para obter o horário de trabalho de um usuário por ID
+app.get("/usuarios/:_id/horario", async (req, res) => {
+  try {
+    const usuario = await User.findById(req.params._id, { horarioTrabalho: 1 });
+    if (!usuario) {
+      return res.status(404).json({ erro: "Usuário não encontrado!" });
+    }
+    res.json(usuario.horarioTrabalho);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar horário de trabalho", detalhes: error.message });
+  }
+});
+
+// Endpoint público para obter o horário de trabalho de um usuário por ID (para quiosque)
+app.get("/public/usuarios/:_id/horario", async (req, res) => {
+  try {
+    const usuario = await User.findById(req.params._id, { horarioTrabalho: 1 });
+    if (!usuario) {
+      return res.status(404).json({ erro: "Usuário não encontrado!" });
+    }
+    res.json(usuario.horarioTrabalho);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar horário de trabalho", detalhes: error.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
