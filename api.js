@@ -390,53 +390,53 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
-    // 1. Extrair componentes da data local do Brasil
-    const dataObj = new Date(data);
+    // 1. Converter data recebida (que já está em UTC) para o objeto Date
+    const dataUTC = new Date(data);
     
-    // 2. Ajustar manualmente para compensar a conversão UTC do MongoDB
-    // Importante: adicionar 3 horas ao timestamp para que, quando o MongoDB
-    // converter para UTC, a data resultante represente corretamente o horário local
-    const dataAjustada = new Date(dataObj.getTime() + (3 * 60 * 60 * 1000));
-    
-    // 3. Criar o registro com a data ajustada
+    // 2. NÃO adicionar horas - o timestamp já está em UTC
+    // Simplesmente usar o timestamp recebido
     const novaFrequencia = new Frequencia({
       nome,
       usuario_id,
-      data: dataAjustada, // Usar a data com compensação de fuso
+      data: dataUTC,
       tipo_registro: tipo_registro || 'entrada'
     });
     
-    // 4. Para verificações, usar a data original sem ajuste (já em formato Brasil)
-    // Extrair apenas YYYY-MM-DD da data original
-    const hoje = dataObj.toISOString().split('T')[0];
+    // 3. Para consultas de mesmo dia, extrair a data em formato Brasil
+    const dataLocal = dataUTC.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const [dataLocalParte] = dataLocal.split(',');
+    const [dia, mes, ano] = dataLocalParte.trim().split('/');
     
-    // 5. Criar objetos de início e fim do dia no fuso horário brasileiro
-    const hojeInicio = new Date(`${hoje}T00:00:00-03:00`);
-    const hojeAjustado = new Date(hojeInicio.getTime() + (3 * 60 * 60 * 1000));
+    // 4. Criar início e fim do dia usando a data local (Brasil)
+    const inicioDiaLocal = new Date(`${ano}-${mes}-${dia}T00:00:00.000Z`);
+    const fimDiaLocal = new Date(`${ano}-${mes}-${dia}T23:59:59.999Z`);
     
-    const amanha = new Date(hojeAjustado);
-    amanha.setDate(amanha.getDate() + 1);
-    
-    // 6. Usar as datas ajustadas para verificação de registros existentes
+    // 5. Verificar se já existe registro do mesmo tipo para hoje (usando a data local correta)
     const registroExistente = await Frequencia.findOne({
       usuario_id,
       tipo_registro,
-      data: { $gte: hojeAjustado, $lt: amanha }
+      data: {
+        $gte: inicioDiaLocal,
+        $lt: fimDiaLocal
+      }
     });
     
     if (registroExistente) {
       return res.status(409).json({ 
         erro: `Você já registrou seu ponto de ${tipo_registro === 'entrada' ? 'entrada' : 'saída'} hoje.`,
-        frequencia: registroExistente 
+        frequencia: registroExistente
       });
     }
     
-    // 7. Verificação adicional: Se estiver registrando saída, deve ter entrada hoje
+    // 6. Verificar se tem entrada antes de registrar saída (usando a data local)
     if (tipo_registro === 'saida') {
       const temEntrada = await Frequencia.findOne({
         usuario_id,
         tipo_registro: 'entrada',
-        data: { $gte: hojeAjustado, $lt: amanha }
+        data: {
+          $gte: inicioDiaLocal,
+          $lt: fimDiaLocal
+        }
       });
       
       if (!temEntrada) {
@@ -446,15 +446,16 @@ app.post('/frequencias/registrar', async (req, res) => {
       }
     }
     
-    // 8. Salvar o registro com a data ajustada
+    // 7. Salvar o registro
     await novaFrequencia.save();
     
-    // 9. Retornar resposta com data original para referência
+    // 8. Retornar sucesso com detalhes para depuração
     res.status(201).json({ 
       mensagem: 'Registro de ponto realizado com sucesso',
       frequencia: novaFrequencia,
-      dataLocal: dataObj.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      dataRegistrada: novaFrequencia.data.toISOString()
+      dataLocal: dataUTC.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      dataRegistrada: novaFrequencia.data.toISOString(),
+      diaLocalRegistro: `${dia}/${mes}/${ano}`
     });
   } catch (error) {
     console.error('Erro ao registrar ponto:', error);
