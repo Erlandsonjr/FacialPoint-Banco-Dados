@@ -509,17 +509,39 @@ app.get("/public/usuarios/:_id/horario", async (req, res) => {
 });
 
 // Endpoint para retornar todos os usuários (exceto administradores)
-app.get("/usuarios/todos", autenticarToken, async (req, res) => {
+app.get("/usuarios/todos", async (req, res) => {
     try {
-        const usuarios = await User.find(
-            { role: { $ne: "administrador" } }, 
-            { senha: 0, foto: 0 } // Exclui campos sensíveis
-        );
+        // Verificar token manualmente para depurar o problema
+        const token = req.headers.authorization?.split(" ")[1];
         
-        res.json(usuarios);
+        if (!token) {
+            return res.status(401).json({ erro: "Acesso negado! Token não fornecido." });
+        }
+        
+        try {
+            // Usar a mesma chave do login para verificar o token
+            const usuarioVerificado = jwt.verify(token, SECRET);
+            
+            // Se chegou até aqui, o token é válido
+            const usuarios = await User.find(
+                { role: { $ne: "administrador" } }, 
+                { senha: 0, foto: 0 } // Exclui campos sensíveis
+            );
+            
+            return res.json(usuarios);
+        } catch (tokenError) {
+            console.error("Erro na verificação do token:", tokenError);
+            return res.status(403).json({ 
+                erro: "Token inválido ou expirado!", 
+                detalhes: tokenError.message 
+            });
+        }
     } catch (error) {
         console.error("Erro ao buscar usuários:", error);
-        res.status(500).json({ erro: "Erro ao buscar usuários", detalhes: error.message });
+        return res.status(500).json({ 
+            erro: "Erro ao buscar usuários", 
+            detalhes: error.message 
+        });
     }
 });
 
