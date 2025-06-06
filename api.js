@@ -357,16 +357,9 @@ app.get('/frequencias/verifica/:usuarioId', async (req, res) => {
     const data = req.query.data; // Formato YYYY-MM-DD
     const tipo = req.query.tipo; // "entrada" ou "saida"
     
-    if (!data || !usuarioId) {
-      return res.status(400).json({ erro: 'Parâmetros incompletos' });
-    }
-    
-    // Criar objeto Date a partir da data fornecida
-    const dataInicio = new Date(data);
-    dataInicio.setHours(0, 0, 0, 0);
-    
-    const dataFim = new Date(data);
-    dataFim.setHours(23, 59, 59, 999);
+    // Criar objeto Date a partir da data fornecida - AJUSTADO PARA BRASÍLIA
+    const dataInicio = new Date(data + 'T00:00:00-03:00'); // Explicitamente usando fuso-horário Brasil
+    const dataFim = new Date(data + 'T23:59:59-03:00');
     
     // Construir filtro de busca
     const filtro = {
@@ -397,12 +390,12 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
-    // Validações básicas
-    if (!usuario_id || !data) {
-      return res.status(400).json({ erro: 'Dados incompletos para registro' });
-    }
-
-    console.log('Dados recebidos:', req.body);
+    // Verificar se já existe registro do MESMO TIPO para hoje
+    // Extrair apenas a data (YYYY-MM-DD) e reconstruir com horário de Brasília
+    const dataPartes = new Date(data).toISOString().split('T')[0];
+    const hojeInicio = new Date(dataPartes + 'T00:00:00-03:00');
+    const amanha = new Date(hojeInicio);
+    amanha.setDate(amanha.getDate() + 1);
     
     // Criar novo registro de frequência
     const novaFrequencia = new Frequencia({
@@ -413,16 +406,10 @@ app.post('/frequencias/registrar', async (req, res) => {
     });
     
     // Verificar se já existe registro do MESMO TIPO para hoje
-    const hoje = new Date(data);
-    hoje.setHours(0, 0, 0, 0);
-    
-    const amanha = new Date(hoje);
-    amanha.setDate(amanha.getDate() + 1);
-    
     const registroExistente = await Frequencia.findOne({
       usuario_id,
       tipo_registro, // Adicionado o tipo para verificar apenas registros do mesmo tipo
-      data: { $gte: hoje, $lt: amanha }
+      data: { $gte: hojeInicio, $lt: amanha }
     });
     
     if (registroExistente) {
@@ -437,7 +424,7 @@ app.post('/frequencias/registrar', async (req, res) => {
       const temEntrada = await Frequencia.findOne({
         usuario_id,
         tipo_registro: 'entrada',
-        data: { $gte: hoje, $lt: amanha }
+        data: { $gte: hojeInicio, $lt: amanha }
       });
       
       if (!temEntrada) {
