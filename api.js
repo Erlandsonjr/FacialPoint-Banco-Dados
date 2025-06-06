@@ -390,37 +390,42 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
-    // Interpretar a data corretamente
-    // Se a data vier como "2025-06-05T22:38:38.051-03:00", o fuso horário já está incluído
-    const dataLocal = new Date(data);
-    
-    // Criar novo registro com a data correta
+    // 1. Criar a frequência normalmente - MongoDB vai converter para UTC automaticamente 
     const novaFrequencia = new Frequencia({
       nome,
       usuario_id,
-      data: dataLocal,
+      data: new Date(data),  // A data já vem com o fuso horário correto (-03:00)
       tipo_registro: tipo_registro || 'entrada'
     });
     
-    // Para fins de verificação de registros no mesmo dia
-    // Extrair apenas a data YYYY-MM-DD da string recebida
-    const dateParts = data.split('T')[0].split('-');
-    const year = dateParts[0];
-    const month = dateParts[1];
-    const day = dateParts[2];
+    // 2. Para verificações no mesmo dia, precisamos EXTRAIR o dia local da data original
+    // Vamos criar uma data local do Brasil a partir da string enviada
+    const dataOriginal = new Date(data);
     
-    // Criar objetos Date para início e fim do dia no formato UTC
-    // Isso garante que as consultas serão feitas no dia correto
-    const inicioDia = new Date(Date.UTC(year, month-1, day, 0, 0, 0));
-    const fimDia = new Date(Date.UTC(year, month-1, day, 23, 59, 59, 999));
+    // Extrair ano, mês e dia NO FUSO HORÁRIO DE BRASÍLIA
+    const localDateString = dataOriginal.toLocaleString('pt-BR', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
     
-    // Verificar se já existe registro do mesmo tipo para hoje
+    // Converter para formato YYYY-MM-DD
+    const [dia, mes, ano] = localDateString.split('/');
+    const dataLocalFormatada = `${ano}-${mes}-${dia}`;
+    
+    // 3. Criar objetos Date para início e fim do dia convertidos para UTC
+    // para comparar corretamente no MongoDB
+    const inicioDiaLocal = new Date(`${dataLocalFormatada}T00:00:00-03:00`);
+    const fimDiaLocal = new Date(`${dataLocalFormatada}T23:59:59.999-03:00`);
+    
+    // 4. Usar esses objetos para consultar registros do mesmo dia
     const registroExistente = await Frequencia.findOne({
       usuario_id,
       tipo_registro,
-      data: {
-        $gte: inicioDia,
-        $lt: fimDia
+      data: { 
+        $gte: inicioDiaLocal,
+        $lt: fimDiaLocal
       }
     });
     
@@ -431,14 +436,14 @@ app.post('/frequencias/registrar', async (req, res) => {
       });
     }
     
-    // Verificar se tem entrada antes de registrar saída (usando a data local)
+    // 5. Verificação de entrada antes da saída (mesmo dia)
     if (tipo_registro === 'saida') {
       const temEntrada = await Frequencia.findOne({
         usuario_id,
         tipo_registro: 'entrada',
-        data: {
-          $gte: inicioDia,
-          $lt: fimDia
+        data: { 
+          $gte: inicioDiaLocal, 
+          $lt: fimDiaLocal 
         }
       });
       
@@ -452,7 +457,7 @@ app.post('/frequencias/registrar', async (req, res) => {
     // Salvar o registro
     await novaFrequencia.save();
     
-    // Retornar sucesso com detalhes para depuração
+    // Retornar com detalhes para depuração
     res.status(201).json({ 
       mensagem: 'Registro de ponto realizado com sucesso',
       frequencia: novaFrequencia,
