@@ -412,7 +412,7 @@ app.post('/frequencias/registrar', async (req, res) => {
       tipo_registro: tipo_registro || 'entrada'
     });
     
-    // Verificar se já existe registro para hoje
+    // Verificar se já existe registro do MESMO TIPO para hoje
     const hoje = new Date(data);
     hoje.setHours(0, 0, 0, 0);
     
@@ -421,14 +421,30 @@ app.post('/frequencias/registrar', async (req, res) => {
     
     const registroExistente = await Frequencia.findOne({
       usuario_id,
+      tipo_registro, // Adicionado o tipo para verificar apenas registros do mesmo tipo
       data: { $gte: hoje, $lt: amanha }
     });
     
     if (registroExistente) {
       return res.status(409).json({ 
-        erro: 'Já existe um registro de ponto para este usuário hoje',
+        erro: `Você já registrou seu ponto de ${tipo_registro === 'entrada' ? 'entrada' : 'saída'} hoje.`,
         frequencia: registroExistente 
       });
+    }
+    
+    // Verificação adicional: Se estiver registrando saída, deve ter entrada hoje
+    if (tipo_registro === 'saida') {
+      const temEntrada = await Frequencia.findOne({
+        usuario_id,
+        tipo_registro: 'entrada',
+        data: { $gte: hoje, $lt: amanha }
+      });
+      
+      if (!temEntrada) {
+        return res.status(400).json({ 
+          erro: 'Você precisa registrar o ponto de entrada antes do ponto de saída'
+        });
+      }
     }
     
     // Salvar o novo registro
