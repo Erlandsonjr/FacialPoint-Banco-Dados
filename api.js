@@ -390,34 +390,37 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
-    // 1. Converter data recebida (que já está em UTC) para o objeto Date
-    const dataUTC = new Date(data);
+    // Interpretar a data corretamente
+    // Se a data vier como "2025-06-05T22:38:38.051-03:00", o fuso horário já está incluído
+    const dataLocal = new Date(data);
     
-    // 2. NÃO adicionar horas - o timestamp já está em UTC
-    // Simplesmente usar o timestamp recebido
+    // Criar novo registro com a data correta
     const novaFrequencia = new Frequencia({
       nome,
       usuario_id,
-      data: dataUTC,
+      data: dataLocal,
       tipo_registro: tipo_registro || 'entrada'
     });
     
-    // 3. Para consultas de mesmo dia, extrair a data em formato Brasil
-    const dataLocal = dataUTC.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const [dataLocalParte] = dataLocal.split(',');
-    const [dia, mes, ano] = dataLocalParte.trim().split('/');
+    // Para fins de verificação de registros no mesmo dia
+    // Extrair apenas a data YYYY-MM-DD da string recebida
+    const dateParts = data.split('T')[0].split('-');
+    const year = dateParts[0];
+    const month = dateParts[1];
+    const day = dateParts[2];
     
-    // 4. Criar início e fim do dia usando a data local (Brasil)
-    const inicioDiaLocal = new Date(`${ano}-${mes}-${dia}T00:00:00.000Z`);
-    const fimDiaLocal = new Date(`${ano}-${mes}-${dia}T23:59:59.999Z`);
+    // Criar objetos Date para início e fim do dia no formato UTC
+    // Isso garante que as consultas serão feitas no dia correto
+    const inicioDia = new Date(Date.UTC(year, month-1, day, 0, 0, 0));
+    const fimDia = new Date(Date.UTC(year, month-1, day, 23, 59, 59, 999));
     
-    // 5. Verificar se já existe registro do mesmo tipo para hoje (usando a data local correta)
+    // Verificar se já existe registro do mesmo tipo para hoje
     const registroExistente = await Frequencia.findOne({
       usuario_id,
       tipo_registro,
       data: {
-        $gte: inicioDiaLocal,
-        $lt: fimDiaLocal
+        $gte: inicioDia,
+        $lt: fimDia
       }
     });
     
@@ -428,14 +431,14 @@ app.post('/frequencias/registrar', async (req, res) => {
       });
     }
     
-    // 6. Verificar se tem entrada antes de registrar saída (usando a data local)
+    // Verificar se tem entrada antes de registrar saída (usando a data local)
     if (tipo_registro === 'saida') {
       const temEntrada = await Frequencia.findOne({
         usuario_id,
         tipo_registro: 'entrada',
         data: {
-          $gte: inicioDiaLocal,
-          $lt: fimDiaLocal
+          $gte: inicioDia,
+          $lt: fimDia
         }
       });
       
@@ -446,16 +449,16 @@ app.post('/frequencias/registrar', async (req, res) => {
       }
     }
     
-    // 7. Salvar o registro
+    // Salvar o registro
     await novaFrequencia.save();
     
-    // 8. Retornar sucesso com detalhes para depuração
+    // Retornar sucesso com detalhes para depuração
     res.status(201).json({ 
       mensagem: 'Registro de ponto realizado com sucesso',
       frequencia: novaFrequencia,
-      dataLocal: dataUTC.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-      dataRegistrada: novaFrequencia.data.toISOString(),
-      diaLocalRegistro: `${dia}/${mes}/${ano}`
+      dataOriginal: data,
+      dataArmazenada: novaFrequencia.data.toISOString(),
+      dataLocalFormatada: novaFrequencia.data.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
     });
   } catch (error) {
     console.error('Erro ao registrar ponto:', error);
