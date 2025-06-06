@@ -548,19 +548,22 @@ app.get("/usuarios/todos", async (req, res) => {
 // Rota pública para dados completos de usuários (incluindo perfil mas sem dados sensíveis)
 app.get('/public/usuarios/completos', async (req, res) => {
   try {
-    // Buscar todos os usuários com campos necessários
-    const usuarios = await User.find({}, { 
-      _id: 1, 
-      nome: 1, 
-      foto: 1, 
-      perfil: 1 // Incluindo o campo de perfil
-    });
+    // Buscar apenas usuários que NÃO são administradores
+    const usuarios = await User.find(
+      { role: { $ne: "administrador" } }, 
+      { 
+        _id: 1, 
+        nome: 1, 
+        foto: 1, 
+        perfil: 1
+      }
+    );
     
     res.status(200).json(usuarios.map(usuario => ({
       id: usuario._id,
       nome: usuario.nome,
       foto: usuario.foto,
-      perfil: usuario.perfil // Adicionando o perfil na resposta
+      perfil: usuario.perfil
     })));
   // Lembrar de fazer mudança do admin
   } catch (error) {
