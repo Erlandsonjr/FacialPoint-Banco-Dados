@@ -390,33 +390,38 @@ app.post('/frequencias/registrar', async (req, res) => {
   try {
     const { nome, usuario_id, data, tipo_registro } = req.body;
     
-    // Criar data inicialmente como um objeto Date regular (será convertido para UTC)
-    const dataOriginal = new Date(data);
+    // 1. Extrair componentes da data local do Brasil
+    const dataObj = new Date(data);
     
-    // IMPORTANTE: Ajustar manualmente subtraindo 3 horas para compensar a conversão UTC do MongoDB
-    // Não precisamos fazer isso agora que a hora vem corretamente do frontend
+    // 2. Ajustar manualmente para compensar a conversão UTC do MongoDB
+    // Importante: adicionar 3 horas ao timestamp para que, quando o MongoDB
+    // converter para UTC, a data resultante represente corretamente o horário local
+    const dataAjustada = new Date(dataObj.getTime() + (3 * 60 * 60 * 1000));
     
-    // Criar novo registro de frequência com a data original (sem ajustes)
+    // 3. Criar o registro com a data ajustada
     const novaFrequencia = new Frequencia({
       nome,
       usuario_id,
-      data: dataOriginal,
+      data: dataAjustada, // Usar a data com compensação de fuso
       tipo_registro: tipo_registro || 'entrada'
     });
     
-    // Para verificação, usar a data original diretamente, mas extrair só YYYY-MM-DD
-    const hoje = dataOriginal.toISOString().split('T')[0]; // YYYY-MM-DD
+    // 4. Para verificações, usar a data original sem ajuste (já em formato Brasil)
+    // Extrair apenas YYYY-MM-DD da data original
+    const hoje = dataObj.toISOString().split('T')[0];
     
-    // Para as verificações de mesmo dia, usar a data formatada:
+    // 5. Criar objetos de início e fim do dia no fuso horário brasileiro
     const hojeInicio = new Date(`${hoje}T00:00:00-03:00`);
-    const amanha = new Date(hojeInicio);
+    const hojeAjustado = new Date(hojeInicio.getTime() + (3 * 60 * 60 * 1000));
+    
+    const amanha = new Date(hojeAjustado);
     amanha.setDate(amanha.getDate() + 1);
     
-    // Verificar se já existe registro do MESMO TIPO para hoje
+    // 6. Usar as datas ajustadas para verificação de registros existentes
     const registroExistente = await Frequencia.findOne({
       usuario_id,
       tipo_registro,
-      data: { $gte: hojeInicio, $lt: amanha }
+      data: { $gte: hojeAjustado, $lt: amanha }
     });
     
     if (registroExistente) {
@@ -426,12 +431,12 @@ app.post('/frequencias/registrar', async (req, res) => {
       });
     }
     
-    // Verificação adicional: Se estiver registrando saída, deve ter entrada hoje
+    // 7. Verificação adicional: Se estiver registrando saída, deve ter entrada hoje
     if (tipo_registro === 'saida') {
       const temEntrada = await Frequencia.findOne({
         usuario_id,
         tipo_registro: 'entrada',
-        data: { $gte: hojeInicio, $lt: amanha }
+        data: { $gte: hojeAjustado, $lt: amanha }
       });
       
       if (!temEntrada) {
@@ -441,19 +446,15 @@ app.post('/frequencias/registrar', async (req, res) => {
       }
     }
     
-    // Salvar o novo registro
+    // 8. Salvar o registro com a data ajustada
     await novaFrequencia.save();
     
-    // Para retornar ao cliente, criar uma representação com o horário correto
-    const frequenciaAjustada = {
-      ...novaFrequencia._doc,
-      dataHoraBrasilia: dataOriginal.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
-    };
-    
+    // 9. Retornar resposta com data original para referência
     res.status(201).json({ 
       mensagem: 'Registro de ponto realizado com sucesso',
       frequencia: novaFrequencia,
-      horarioLocal: frequenciaAjustada.dataHoraBrasilia
+      dataLocal: dataObj.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+      dataRegistrada: novaFrequencia.data.toISOString()
     });
   } catch (error) {
     console.error('Erro ao registrar ponto:', error);
