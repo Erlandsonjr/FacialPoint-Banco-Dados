@@ -508,4 +508,19 @@ app.get("/public/usuarios/:_id/horario", async (req, res) => {
   }
 });
 
+// Endpoint para retornar todos os usuários (exceto administradores)
+app.get("/usuarios/todos", autenticarToken, async (req, res) => {
+    try {
+        const usuarios = await User.find(
+            { role: { $ne: "administrador" } }, 
+            { senha: 0, foto: 0 } // Exclui campos sensíveis
+        );
+        
+        res.json(usuarios);
+    } catch (error) {
+        console.error("Erro ao buscar usuários:", error);
+        res.status(500).json({ erro: "Erro ao buscar usuários", detalhes: error.message });
+    }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
