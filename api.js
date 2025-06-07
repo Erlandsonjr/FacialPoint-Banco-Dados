@@ -217,14 +217,22 @@ app.post("/usuarios/me/frequencia", autenticarToken, async (req, res) => {
     }
 });
 
-// Buscar frequências do usuário logado
+// Buscar frequências do usuário logado (VERSÃO CORRIGIDA)
 app.get("/frequencias/minhas", autenticarToken, async (req, res) => {
     try {
-        // Busca o usuário logado e popula as frequências
-        const usuario = await User.findById(req.usuario._id).populate("frequencia");
-        res.json(usuario.frequencia); // Retorna apenas as frequências
+        console.log(`Buscando frequências para usuário: ${req.usuario._id}`);
+        
+        // Buscar frequências diretamente na coleção usando o usuario_id
+        const frequencias = await Frequencia.find({ 
+            usuario_id: req.usuario._id 
+        }).sort({ data: -1 }); // Ordenar por data, mais recentes primeiro
+        
+        console.log(`Encontradas ${frequencias.length} frequências para usuário ${req.usuario._id}`);
+        
+        res.json(frequencias);
     } catch (error) {
-        res.status(500).json({ erro: "Erro ao buscar frequências", detalhes: error });
+        console.error("Erro ao buscar frequências:", error);
+        res.status(500).json({ erro: "Erro ao buscar frequências", detalhes: error.message });
     }
 });
 
