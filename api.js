@@ -280,80 +280,31 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 
 app.get("/horario-brasilia", (req, res) => {
     try {
-        // Método 1: Usando o objeto Date diretamente com getters específicos para timezone
-        // (mais confiável, não depende de parsing de strings)
         const now = new Date();
-        
-        // Obter os componentes individuais no fuso horário de Brasília
-        const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo' });
-        const brasiliaDate = new Date(formatter.format(now));
-        
-        // Método 2 de backup: Calculate using timezone offset
-        const brasiliaTimestamp = now.getTime() - (now.getTimezoneOffset() + 180) * 60000;
-        const backupDate = new Date(brasiliaTimestamp);
-        
-        // Obter componentes da data no formato correto usando toLocaleString
-        const components = {
-            year: now.toLocaleString('en-US', { year: 'numeric', timeZone: 'America/Sao_Paulo' }),
-            month: now.toLocaleString('en-US', { month: '2-digit', timeZone: 'America/Sao_Paulo' }),
-            day: now.toLocaleString('en-US', { day: '2-digit', timeZone: 'America/Sao_Paulo' }),
-            hour: now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }),
-            minute: now.toLocaleString('en-US', { minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
-            second: now.toLocaleString('en-US', { second: '2-digit', timeZone: 'America/Sao_Paulo' })
-        };
-        
-        // Métodos múltiplos para garantir que algum funcionará
+
+        // Obter componentes da data no fuso de Brasília
+        const year   = Number(now.toLocaleString('en-US', { year: 'numeric', timeZone: 'America/Sao_Paulo' }));
+        const month  = Number(now.toLocaleString('en-US', { month: '2-digit', timeZone: 'America/Sao_Paulo' }));
+        const day    = Number(now.toLocaleString('en-US', { day: '2-digit', timeZone: 'America/Sao_Paulo' }));
+        const hour   = Number(now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }));
+        const minute = Number(now.toLocaleString('en-US', { minute: '2-digit', timeZone: 'America/Sao_Paulo' }));
+        const second = Number(now.toLocaleString('en-US', { second: '2-digit', timeZone: 'America/Sao_Paulo' }));
+
+        // Crie a data de Brasília corretamente
+        const brasiliaDate = new Date(year, month - 1, day, hour, minute, second);
+
         res.json({
-            // Método 1: Formato ISO tradicional (pode ter timezone incorreto)
-            isoString: now.toISOString(),
-            
-            // Método 2: Timestamp bruto com offset já ajustado
-            timestamp: brasiliaTimestamp,
-            
-            // Método 3: Formato ISO local (não padrão mas funcional)
-            localISOString: new Date(
-                parseInt(components.year),
-                parseInt(components.month) - 1,
-                parseInt(components.day),
-                parseInt(components.hour),
-                parseInt(components.minute),
-                parseInt(components.second)
-            ).toISOString(),
-            
-            // Método 4: Componentes da data extraídos diretamente
+            isoString: brasiliaDate.toISOString(),
+            timestamp: brasiliaDate.getTime(),
             components: {
-                year: parseInt(components.year, 10),
-                month: parseInt(components.month, 10),
-                day: parseInt(components.day, 10),
-                hour: parseInt(components.hour, 10),
-                minute: parseInt(components.minute, 10),
-                second: parseInt(components.second, 10)
-            },
-            
-            // Informações adicionais para debug
-            debug: {
-                originalDate: now.toString(),
-                formattedDate: now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+                year, month, day, hour, minute, second
             }
         });
     } catch (error) {
-        // Log detalhado do erro
-        console.error("Erro ao obter o horário:", error);
-        console.error("Stack trace:", error.stack);
-        
-        // Em caso de erro, retorna timestamp bruto como fallback
         res.status(200).json({ 
             timestamp: Date.now(),
             error: error.message,
-            fallback: true,
-            components: {
-                year: new Date().getFullYear(),
-                month: new Date().getMonth() + 1,
-                day: new Date().getDate(),
-                hour: new Date().getHours(),
-                minute: new Date().getMinutes(),
-                second: new Date().getSeconds()
-            }
+            fallback: true
         });
     }
 });
