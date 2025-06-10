@@ -5,6 +5,7 @@ import cors from "cors";
 import User from "./user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import fetch from "node-fetch"; // Adicione esta linha no topo, se ainda não tiver
 
 const app = express();
 const PORT = 3000;
@@ -278,34 +279,17 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 });
 
 
-app.get("/horario-brasilia", (req, res) => {
+// Endpoint proxy para horário de Brasília via WorldTimeAPI
+app.get("/proxy/horario-brasilia", async (req, res) => {
     try {
-        const now = new Date();
-
-        // Obter componentes da data no fuso de Brasília
-        const year   = Number(now.toLocaleString('en-US', { year: 'numeric', timeZone: 'America/Sao_Paulo' }));
-        const month  = Number(now.toLocaleString('en-US', { month: '2-digit', timeZone: 'America/Sao_Paulo' }));
-        const day    = Number(now.toLocaleString('en-US', { day: '2-digit', timeZone: 'America/Sao_Paulo' }));
-        const hour   = Number(now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }));
-        const minute = Number(now.toLocaleString('en-US', { minute: '2-digit', timeZone: 'America/Sao_Paulo' }));
-        const second = Number(now.toLocaleString('en-US', { second: '2-digit', timeZone: 'America/Sao_Paulo' }));
-
-        // Crie a data de Brasília corretamente
-        const brasiliaDate = new Date(year, month - 1, day, hour, minute, second);
-
-        res.json({
-            isoString: brasiliaDate.toISOString(),
-            timestamp: brasiliaDate.getTime(),
-            components: {
-                year, month, day, hour, minute, second
-            }
-        });
+        const response = await fetch("http://worldtimeapi.org/api/timezone/America/Sao_Paulo");
+        if (!response.ok) {
+            return res.status(500).json({ error: "Erro ao consultar WorldTimeAPI" });
+        }
+        const data = await response.json();
+        res.json(data);
     } catch (error) {
-        res.status(200).json({ 
-            timestamp: Date.now(),
-            error: error.message,
-            fallback: true
-        });
+        res.status(500).json({ error: "Erro ao obter horário de Brasília", detalhes: error.message });
     }
 });
 
