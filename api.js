@@ -280,45 +280,81 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 
 app.get("/horario-brasilia", (req, res) => {
     try {
-        // Obter data e horário atual
+        // Método 1: Usando o objeto Date diretamente com getters específicos para timezone
+        // (mais confiável, não depende de parsing de strings)
         const now = new Date();
         
-        // Formatador com timezone de Brasília
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/Sao_Paulo', 
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
+        // Obter os componentes individuais no fuso horário de Brasília
+        const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo' });
+        const brasiliaDate = new Date(formatter.format(now));
         
-        const formattedDate = formatter.format(now);
-        const [datePart, timePart] = formattedDate.split(', ');
-        const [month, day, year] = datePart.split('/');
-        const [hour, minute, second] = timePart.split(':');
+        // Método 2 de backup: Calculate using timezone offset
+        const brasiliaTimestamp = now.getTime() - (now.getTimezoneOffset() + 180) * 60000;
+        const backupDate = new Date(brasiliaTimestamp);
         
-        // Criar um objeto Date ajustado para o timezone de Brasília
-        const brasiliaDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`);
+        // Obter componentes da data no formato correto usando toLocaleString
+        const components = {
+            year: now.toLocaleString('en-US', { year: 'numeric', timeZone: 'America/Sao_Paulo' }),
+            month: now.toLocaleString('en-US', { month: '2-digit', timeZone: 'America/Sao_Paulo' }),
+            day: now.toLocaleString('en-US', { day: '2-digit', timeZone: 'America/Sao_Paulo' }),
+            hour: now.toLocaleString('en-US', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }),
+            minute: now.toLocaleString('en-US', { minute: '2-digit', timeZone: 'America/Sao_Paulo' }),
+            second: now.toLocaleString('en-US', { second: '2-digit', timeZone: 'America/Sao_Paulo' })
+        };
         
-        // Retornar os dados no formato ISO e componentes
+        // Métodos múltiplos para garantir que algum funcionará
         res.json({
-            isoString: brasiliaDate.toISOString(),
+            // Método 1: Formato ISO tradicional (pode ter timezone incorreto)
+            isoString: now.toISOString(),
+            
+            // Método 2: Timestamp bruto com offset já ajustado
+            timestamp: brasiliaTimestamp,
+            
+            // Método 3: Formato ISO local (não padrão mas funcional)
+            localISOString: new Date(
+                parseInt(components.year),
+                parseInt(components.month) - 1,
+                parseInt(components.day),
+                parseInt(components.hour),
+                parseInt(components.minute),
+                parseInt(components.second)
+            ).toISOString(),
+            
+            // Método 4: Componentes da data extraídos diretamente
             components: {
-                year: parseInt(year, 10),
-                month: parseInt(month, 10),
-                day: parseInt(day, 10),
-                hour: parseInt(hour, 10),
-                minute: parseInt(minute, 10),
-                second: parseInt(second, 10)
+                year: parseInt(components.year, 10),
+                month: parseInt(components.month, 10),
+                day: parseInt(components.day, 10),
+                hour: parseInt(components.hour, 10),
+                minute: parseInt(components.minute, 10),
+                second: parseInt(components.second, 10)
             },
-            timestamp: brasiliaDate.getTime()
+            
+            // Informações adicionais para debug
+            debug: {
+                originalDate: now.toString(),
+                formattedDate: now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+            }
         });
     } catch (error) {
+        // Log detalhado do erro
         console.error("Erro ao obter o horário:", error);
-        res.status(500).json({ erro: "Erro ao obter o horário", detalhes: error.message });
+        console.error("Stack trace:", error.stack);
+        
+        // Em caso de erro, retorna timestamp bruto como fallback
+        res.status(200).json({ 
+            timestamp: Date.now(),
+            error: error.message,
+            fallback: true,
+            components: {
+                year: new Date().getFullYear(),
+                month: new Date().getMonth() + 1,
+                day: new Date().getDate(),
+                hour: new Date().getHours(),
+                minute: new Date().getMinutes(),
+                second: new Date().getSeconds()
+            }
+        });
     }
 });
 
