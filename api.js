@@ -282,9 +282,9 @@ app.get("/usuarios/:_id", autenticarToken, async (req, res) => {
 // Endpoint proxy para horário de Brasília via WorldTimeAPI
 app.get("/proxy/horario-brasilia", async (req, res) => {
     try {
-        const response = await fetch("http://worldtimeapi.org/api/timezone/America/Sao_Paulo");
+        const response = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=America/Sao_Paulo");
         if (!response.ok) {
-            return res.status(500).json({ error: "Erro ao consultar WorldTimeAPI" });
+            return res.status(500).json({ error: "Erro ao consultar TimeAPI.io" });
         }
         const data = await response.json();
         res.json(data);
