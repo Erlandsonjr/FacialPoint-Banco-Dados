@@ -514,7 +514,7 @@ app.put('/usuarios/admin/:id', autenticarToken, async (req, res) => {
     }
     
     const { id } = req.params;
-    const { nome, email, horarioTrabalho } = req.body;
+    const { nome, email, horarioTrabalho, senha, foto, perfil } = req.body;
     
     if (horarioTrabalho && !validarHorarioTrabalho(horarioTrabalho)) {
       return res.status(400).json({ erro: "Pelo menos um dia da semana deve ter horário de entrada e saída preenchido!" });
@@ -529,6 +529,18 @@ app.put('/usuarios/admin/:id', autenticarToken, async (req, res) => {
     if (nome) dadosAtualizacao.nome = nome;
     if (email) dadosAtualizacao.email = email;
     
+    if (senha) {
+      dadosAtualizacao.senha = await bcrypt.hash(senha, 10);
+    }
+    
+    if (foto) {
+      dadosAtualizacao.foto = foto;
+    }
+    
+    if (perfil) {
+      dadosAtualizacao.perfil = perfil;
+    }
+    
     if (horarioTrabalho) {
       dadosAtualizacao.horarioTrabalho = preencherHorarioTrabalho(horarioTrabalho);
     }
@@ -538,7 +550,7 @@ app.put('/usuarios/admin/:id', autenticarToken, async (req, res) => {
       dadosAtualizacao,
       { new: true, runValidators: true }
     );
-
+    
     const resposta = usuarioAtualizado.toObject();
     delete resposta.senha;
     
