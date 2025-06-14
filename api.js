@@ -6,6 +6,7 @@ import User from "./user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
+import Config from './config.js';
 
 const app = express();
 const PORT = 3000;
@@ -599,6 +600,86 @@ app.delete('/usuarios/admin/:id', autenticarToken, async (req, res) => {
       erro: 'Erro ao excluir usuário', 
       detalhes: error.message 
     });
+  }
+});
+
+app.post('/config/verificar-senha-kiosk', async (req, res) => {
+  try {
+    const { senha } = req.body;
+    
+    if (!senha) {
+      return res.status(400).json({ erro: 'Senha não fornecida' });
+    }
+    
+    const configSenha = await Config.findOne({ chave: 'senha_kiosk' });
+    
+    if (!configSenha) {
+      return res.status(404).json({ erro: 'Configuração de senha do quiosque não encontrada' });
+    }
+    
+    if (senha === configSenha.valor) {
+      return res.status(200).json({ sucesso: true });
+    } else {
+      return res.status(401).json({ erro: 'Senha incorreta' });
+    }
+  } catch (error) {
+    console.error('Erro ao verificar senha do quiosque:', error);
+    return res.status(500).json({ erro: 'Erro ao verificar senha' });
+  }
+});
+
+app.post('/config/atualizar-senha-kiosk', autenticarToken, async (req, res) => {
+  try {
+    if (req.usuario.role !== 'administrador') {
+      return res.status(403).json({ erro: 'Acesso negado. Apenas administradores podem atualizar esta configuração.' });
+    }
+    
+    const { senha } = req.body;
+    
+    if (!senha || senha.trim().length < 4) {
+      return res.status(400).json({ erro: 'A senha deve ter pelo menos 4 caracteres' });
+    }
+    
+    const configExistente = await Config.findOne({ chave: 'senha_kiosk' });
+    
+    if (configExistente) {
+      configExistente.valor = senha;
+      await configExistente.save();
+    } else {
+      await Config.create({
+        chave: 'senha_kiosk',
+        valor: senha,
+        descricao: 'Senha para acesso ao quiosque de registro de ponto'
+      });
+    }
+    
+    return res.status(200).json({ sucesso: true, mensagem: 'Senha do quiosque atualizada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao atualizar senha do quiosque:', error);
+    return res.status(500).json({ erro: 'Erro ao atualizar senha do quiosque' });
+  }
+});
+
+app.get('/config/senha-kiosk', autenticarToken, async (req, res) => {
+  try {
+    if (req.usuario.role !== 'administrador') {
+      return res.status(403).json({ erro: 'Acesso negado. Apenas administradores podem acessar esta configuração.' });
+    }
+    
+    const configSenha = await Config.findOne({ chave: 'senha_kiosk' });
+    
+    if (!configSenha) {
+      return res.status(404).json({ erro: 'Configuração de senha do quiosque não encontrada' });
+    }
+    
+    return res.status(200).json({ 
+      senha: configSenha.valor,
+      dataCriacao: configSenha.dataCriacao,
+      dataAtualizacao: configSenha.dataAtualizacao
+    });
+  } catch (error) {
+    console.error('Erro ao buscar senha do quiosque:', error);
+    return res.status(500).json({ erro: 'Erro ao buscar senha do quiosque' });
   }
 });
 
