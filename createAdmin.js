@@ -4,26 +4,21 @@ import User from "./user.js";
 
 const createAdmin = async () => {
     try {
-        // Conectar ao banco de dados
         await mongoose.connect('mongodb://mongo:tuJEDHUWjeACdoOLHlsohZTJKfKqHpWN@nozomi.proxy.rlwy.net:38247');
         console.log("Conectado ao MongoDB");
 
-        // Verificar se já existe um administrador
         const adminExists = await User.findOne({ role: "administrador" });
         if (adminExists) {
             console.log("Já existe um administrador no sistema.");
             return;
         }
 
-        // Dados do administrador
         const nome ="Administrador";
-        const email ="admin@faceponto.com"; // Substitua por um e-mail válido
-        const senha ="123"; // Substitua por uma senha segura
+        const email ="admin@faceponto.com"; 
+        const senha ="123"; 
 
-        // Criptografar a senha
         const senhaCriptografada = await bcrypt.hash(senha, 10);
 
-        // Criar o administrador
         const admin = await User.create({
             nome,
             email,
@@ -35,7 +30,6 @@ const createAdmin = async () => {
     } catch (error) {
         console.error("Erro ao criar administrador:", error);
     } finally {
-        // Fechar a conexão com o banco de dados
         mongoose.connection.close();
     }
 };

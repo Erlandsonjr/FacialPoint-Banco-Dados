@@ -6,13 +6,13 @@ const userSchema = new mongoose.Schema({
     senha: { type: String, required: true },
     foto: { 
         type: [Number], 
-        required: function () { return this.role !== "administrador"; } // Obrigatório apenas para funcionários
+        required: function () { return this.role !== "administrador"; } 
     },
-    perfil: { type: String }, // Novo campo para armazenar a imagem em Base64
+    perfil: { type: String }, 
     frequencia: [{ 
         type: mongoose.Schema.Types.ObjectId, 
         ref: "Frequencia",
-        required: function () { return this.role === "funcionario"; } // Apenas para funcionários
+        required: function () { return this.role === "funcionario"; } 
     }],
     role: { type: String, enum: ["funcionario", "administrador"], default: "funcionario" },
     horarioTrabalho: {
@@ -47,7 +47,6 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Middleware para garantir que apenas um administrador exista
 userSchema.pre("save", async function (next) {
     if (this.role === "administrador") {
         const adminExists = await mongoose.models.User.findOne({ role: "administrador" });
@@ -56,7 +55,6 @@ userSchema.pre("save", async function (next) {
             return next(error);
         }
 
-        // Impede que administradores tenham frequências associadas
         if (this.frequencia && this.frequencia.length > 0) {
             const error = new Error("Administradores não podem ter frequências associadas.");
             return next(error);
