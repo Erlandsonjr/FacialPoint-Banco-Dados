@@ -683,4 +683,53 @@ app.get('/config/senha-kiosk', autenticarToken, async (req, res) => {
   }
 });
 
+app.post('/frequencias/manual', autenticarToken, async (req, res) => {
+  try {
+    if (req.usuario.role !== 'administrador') {
+      return res.status(403).json({ erro: 'Apenas administradores podem adicionar ponto manualmente.' });
+    }
+    const { usuario_id, nome, data, tipo_registro } = req.body;
+    if (!usuario_id || !nome || !data || !tipo_registro) {
+      return res.status(400).json({ erro: 'Preencha todos os campos obrigatórios.' });
+    }
+    const dataObj = new Date(data);
+    if (isNaN(dataObj.getTime())) {
+      return res.status(400).json({ erro: 'Data ou hora inválida.' });
+    }
+    const dataLocal = new Date(dataObj.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const inicioDia = new Date(dataLocal);
+    inicioDia.setHours(0,0,0,0);
+    const fimDia = new Date(dataLocal);
+    fimDia.setHours(23,59,59,999);
+    const jaExiste = await Frequencia.findOne({
+      usuario_id,
+      tipo_registro,
+      data: { $gte: inicioDia, $lte: fimDia }
+    });
+    if (jaExiste) {
+      return res.status(409).json({ erro: `Já existe um registro de ${tipo_registro} para este dia.` });
+    }
+    if (tipo_registro === 'saida') {
+      const temEntrada = await Frequencia.findOne({
+        usuario_id,
+        tipo_registro: 'entrada',
+        data: { $gte: inicioDia, $lte: fimDia }
+      });
+      if (!temEntrada) {
+        return res.status(400).json({ erro: 'É necessário ter um registro de entrada antes de adicionar uma saída.' });
+      }
+    }
+    const novaFrequencia = new Frequencia({
+      nome,
+      usuario_id,
+      data: dataObj,
+      tipo_registro
+    });
+    await novaFrequencia.save();
+    res.status(201).json({ mensagem: 'Ponto manual adicionado com sucesso', frequencia: novaFrequencia });
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao adicionar ponto manual', detalhes: error.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
