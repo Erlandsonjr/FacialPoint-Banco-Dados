@@ -564,4 +564,42 @@ app.put('/usuarios/admin/:id', autenticarToken, async (req, res) => {
   }
 });
 
+app.delete('/usuarios/admin/:id', autenticarToken, async (req, res) => {
+  try {
+    if (req.usuario.role !== 'administrador') {
+      return res.status(403).json({ erro: 'Acesso negado. Apenas administradores podem excluir outros usuários.' });
+    }
+    
+    const { id } = req.params;
+    
+    const usuarioExistente = await User.findById(id);
+    if (!usuarioExistente) {
+      return res.status(404).json({ erro: "Usuário não encontrado!" });
+    }
+    
+    if (usuarioExistente.role === 'administrador') {
+      return res.status(403).json({ erro: "Não é possível excluir uma conta de administrador!" });
+    }
+    
+    await Frequencia.deleteMany({ usuario_id: id });
+    
+    const usuarioExcluido = await User.findByIdAndDelete(id);
+    
+    if (!usuarioExcluido) {
+      return res.status(404).json({ erro: 'Usuário não encontrado ou já foi removido.' });
+    }
+    
+    res.json({ 
+      mensagem: 'Usuário excluído com sucesso', 
+      usuario: usuarioExcluido 
+    });
+  } catch (error) {
+    console.error('Erro ao excluir usuário:', error);
+    res.status(500).json({ 
+      erro: 'Erro ao excluir usuário', 
+      detalhes: error.message 
+    });
+  }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
