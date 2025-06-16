@@ -14,7 +14,7 @@ const createAdmin = async () => {
         }
 
         const nome ="Administrador";
-        const email ="admin@faceponto.com"; 
+        const email ="admin@facialpoint.com"; 
         const senha ="123"; 
 
         const senhaCriptografada = await bcrypt.hash(senha, 10);

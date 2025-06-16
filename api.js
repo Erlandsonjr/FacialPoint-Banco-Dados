@@ -264,7 +264,7 @@ app.get("/proxy/horario-brasilia", async (req, res) => {
 app.post('/auth/kiosk', (req, res) => {
   const { kioskSecret } = req.body;
   
-  if (kioskSecret === "FacePonto2025") {
+  if (kioskSecret === "FacialPoint2025") {
     const kioskToken = jwt.sign(
       { type: 'kiosk', permissions: ['read_users'] },
       "sua_chave_secreta_jwt_aqui", 
