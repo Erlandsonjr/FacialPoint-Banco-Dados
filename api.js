@@ -732,4 +732,54 @@ app.post('/frequencias/manual', autenticarToken, async (req, res) => {
   }
 });
 
+app.get('/frequencias/usuario/:id/csv', autenticarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verifica se o usuário está tentando acessar seus próprios dados ou é admin
+    if (req.usuario._id !== id && req.usuario.role !== 'administrador') {
+      return res.status(403).json({ 
+        erro: 'Acesso negado. Você só pode exportar suas próprias frequências.' 
+      });
+    }
+
+    const usuario = await User.findById(id);
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+
+    const frequencias = await Frequencia.find({ usuario_id: id })
+      .sort({ data: 1 });
+
+    if (frequencias.length === 0) {
+      return res.status(404).json({ erro: 'Nenhum registro de frequência encontrado' });
+    }
+
+    // Criar cabeçalho do CSV
+    let csv = 'Data,Hora,Tipo de Registro,Nome\n';
+
+    // Adicionar linhas de dados
+    frequencias.forEach(freq => {
+      const data = new Date(freq.data);
+      const dataFormatada = data.toLocaleDateString('pt-BR');
+      const horaFormatada = data.toLocaleTimeString('pt-BR');
+      
+      csv += `${dataFormatada},${horaFormatada},${freq.tipo_registro},${freq.nome}\n`;
+    });
+
+    // Configurar headers para download do arquivo
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=frequencias_${usuario.nome}_${new Date().toISOString().split('T')[0]}.csv`);
+
+    res.send(csv);
+
+  } catch (error) {
+    console.error('Erro ao gerar CSV de frequências:', error);
+    res.status(500).json({ 
+      erro: 'Erro ao gerar arquivo CSV', 
+      detalhes: error.message 
+    });
+  }
+});
+
 app.listen(PORT, () => console.log(`O servidor está rodando na porta ${PORT}`));
