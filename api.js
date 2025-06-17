@@ -495,8 +495,12 @@ app.get('/frequencias/usuario/:id', autenticarToken, async (req, res) => {
     
     const { id } = req.params;
     
-    const frequencias = await Frequencia.find({ usuario_id: id })
-      .sort({ data: -1 });
+    const frequencias = await Frequencia.find({ 
+      $or: [
+        { usuario_id: id },
+        { usuario: id }
+      ]
+    }).sort({ data: 1 });
     
     res.json(frequencias);
   } catch (error) {
