@@ -20,7 +20,7 @@ const SECRET = "seuSegredoSuperSeguro";
 
 const connectDB = async () => {
     try {
-        await mongoose.connect('mongodb://mongo:tuJEDHUWjeACdoOLHlsohZTJKfKqHpWN@nozomi.proxy.rlwy.net:38247');
+        await mongoose.connect('mongodb://mongo:zIpKJZQSviaVIPgvjcddjhCiJuiWudXP@switchyard.proxy.rlwy.net:43714'); 
         console.log("Conectado ao MongoDB");
     } catch (error) {
         console.log("Erro ao conectar ao MongoDB", error);
