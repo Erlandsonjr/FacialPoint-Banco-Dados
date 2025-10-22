@@ -14,10 +14,25 @@ const PORT = 3000;
 app.use(express.json({ limit: "10mb" })); 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://facialpoint-site-production.up.railway.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    // Responder ao preflight request
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
+
+// Configure o CORS após os headers acima
 app.use(cors({
     origin: 'https://facialpoint-site-production.up.railway.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200
 }));
@@ -26,7 +41,7 @@ const SECRET = "seuSegredoSuperSeguro";
 
 const connectDB = async () => {
     try {
-        await mongoose.connect('mongodb://mongo:zIpKJZQSviaVIPgvjcddjhCiJuiWudXP@switchyard.proxy.rlwy.net:43714'); 
+        await mongoose.connect('mongodb://mongo:zIpKJZQSviaVIPgvjcddjhCiJuiWudXP@switchyard.proxy.rlwy.net:43714');
         console.log("Conectado ao MongoDB");
     } catch (error) {
         console.log("Erro ao conectar ao MongoDB", error);
@@ -501,12 +516,8 @@ app.get('/frequencias/usuario/:id', autenticarToken, async (req, res) => {
     
     const { id } = req.params;
     
-    const frequencias = await Frequencia.find({ 
-      $or: [
-        { usuario_id: id },
-        { usuario: id }
-      ]
-    }).sort({ data: 1 });
+    const frequencias = await Frequencia.find({ usuario_id: id })
+      .sort({ data: -1 });
     
     res.json(frequencias);
   } catch (error) {
@@ -746,6 +757,7 @@ app.get('/frequencias/usuario/:id/csv', autenticarToken, async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Verifica se o usuário está tentando acessar seus próprios dados ou é admin
     if (req.usuario._id !== id && req.usuario.role !== 'administrador') {
       return res.status(403).json({ 
         erro: 'Acesso negado. Você só pode exportar suas próprias frequências.' 
@@ -764,28 +776,21 @@ app.get('/frequencias/usuario/:id/csv', autenticarToken, async (req, res) => {
       return res.status(404).json({ erro: 'Nenhum registro de frequência encontrado' });
     }
 
+    // Criar cabeçalho do CSV
     let csv = 'Data,Hora,Tipo de Registro,Nome\n';
 
+    // Adicionar linhas de dados
     frequencias.forEach(freq => {
-      const dataUTC = new Date(freq.data);
-      
-      const dataFormatada = dataUTC.toLocaleDateString('pt-BR', {
-        timeZone: 'America/Sao_Paulo'
-      });
-      const horaFormatada = dataUTC.toLocaleTimeString('pt-BR', {
-        timeZone: 'America/Sao_Paulo',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
+      const data = new Date(freq.data);
+      const dataFormatada = data.toLocaleDateString('pt-BR');
+      const horaFormatada = data.toLocaleTimeString('pt-BR');
       
       csv += `${dataFormatada},${horaFormatada},${freq.tipo_registro},${freq.nome}\n`;
     });
 
-    const nomeArquivo = `frequencias_${usuario.nome.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\//g, '-')}.csv`;
-    
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=${nomeArquivo}`);
+    // Configurar headers para download do arquivo
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=frequencias_${usuario.nome}_${new Date().toISOString().split('T')[0]}.csv`);
 
     res.send(csv);
 
