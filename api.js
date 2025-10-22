@@ -14,7 +14,13 @@ const PORT = 3000;
 app.use(express.json({ limit: "10mb" })); 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-app.use(cors({ origin: "*" }));
+app.use(cors({
+    origin: 'https://facialpoint-site-production.up.railway.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 200
+}));
 
 const SECRET = "seuSegredoSuperSeguro"; 
 
