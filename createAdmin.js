@@ -4,7 +4,7 @@ import User from "./user.js";
 
 const createAdmin = async () => {
     try {
-        await mongoose.connect('mongodb://mongo:tuJEDHUWjeACdoOLHlsohZTJKfKqHpWN@nozomi.proxy.rlwy.net:38247');
+        await mongoose.connect('mongodb://mongo:zIpKJZQSviaVIPgvjcddjhCiJuiWudXP@switchyard.proxy.rlwy.net:43714');
         console.log("Conectado ao MongoDB");
 
         const adminExists = await User.findOne({ role: "administrador" });
