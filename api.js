@@ -1,12 +1,12 @@
 import express from "express";
 import mongoose from "mongoose";
 import Frequencia from "./Frequencia.js";
-import cors from "cors";
 import User from "./user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import fetch from "node-fetch";
 import Config from './config.js';
+import cors from "cors";
 
 const app = express();
 const PORT = 3000;
@@ -14,28 +14,28 @@ const PORT = 3000;
 app.use(express.json({ limit: "10mb" })); 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://facialpoint-site-production.up.railway.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', DELETE, 'OPTIONS'],
+    allowedHeaders: '*',
+    credentials: true
+}));
 
-    // Responder ao preflight request
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin === 'https://facialpoint-site-production.up.railway.app') {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-
+    
     next();
 });
-
-// Configure o CORS após os headers acima
-app.use(cors({
-    origin: 'https://facialpoint-site-production.up.railway.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200
-}));
 
 const SECRET = "seuSegredoSuperSeguro"; 
 
