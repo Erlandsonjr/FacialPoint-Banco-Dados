@@ -8,19 +8,40 @@ import fetch from "node-fetch";
 import Config from './config.js';
 import cors from "cors";
 
+// Configuração do Express e CORS
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
+// Configurações básicas primeiro
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// Configuração do CORS
-app.use(cors({
-    origin: 'https://facialpoint-site-production.up.railway.app/',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-    credentials: true
-}));
+// Nova configuração CORS completa
+app.use((req, res, next) => {
+    const allowedOrigins = [
+        'https://facialpoint-site-production.up.railway.app',
+        'https://facialpoint-banco-dados-production.up.railway.app',
+        'http://localhost:3000',
+        'http://localhost:5173'
+    ];
+
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 horas
+
+    // Resposta para preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    next();
+});
 
 const SECRET = "seuSegredoSuperSeguro";
 
