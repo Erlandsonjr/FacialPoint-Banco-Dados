@@ -14,24 +14,25 @@ const PORT = 3000;
 app.use(express.json({ limit: "10mb" })); 
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', DELETE, 'OPTIONS'],
-    allowedHeaders: '*',
-    credentials: true
-}));
+const corsOptions = {
+    origin: 'https://facialpoint-site-production.up.railway.app',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin === 'https://facialpoint-site-production.up.railway.app') {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', 'https://facialpoint-site-production.up.railway.app');
+    res.header('Access-Control-Allow-Credentials', 'true');
     
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+        return res.status(204).send();
     }
     
     next();
