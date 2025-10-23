@@ -11,52 +11,17 @@ import cors from "cors";
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "10mb" })); 
+// Configuração básica
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// Define allowed origins
-const allowedOrigins = [
-    'https://facialpoint-site-production.up.railway.app',
-    'https://facialpoint-banco-dados-production.up.railway.app',
-    'http://localhost:3000'
-];
-
-// Configure CORS options
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 200
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Add headers middleware
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-
-    next();
-});
+// Configuração CORS mais permissiva
+app.use(cors({
+    origin: '*',
+    methods: '*',
+    allowedHeaders: '*',
+    credentials: true
+}));
 
 const SECRET = "seuSegredoSuperSeguro"; 
 
